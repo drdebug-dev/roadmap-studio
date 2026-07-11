@@ -6,6 +6,7 @@ import {
   type StepFormState,
 } from '@/components/dialogs/step-edit/helpers'
 import { MarkdownEditorField } from '@/components/dialogs/step-edit/MarkdownEditorField'
+import { QuizzesTab } from '@/components/dialogs/step-edit/QuizzesTab'
 import { ResourceEditorList } from '@/components/dialogs/step-edit/ResourceEditorList'
 import { isValidUrl, mapApiResources } from '@/components/dialogs/step-edit/utils'
 import { Button } from '@/components/ui/button'
@@ -27,6 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useQuizzes } from '@/hooks/useQuizzes'
 import { useStep } from '@/hooks/useStep'
 import type { EditTarget, StepEditPayload } from '@/hooks/useRoadmapEditor'
 import type { RoadmapNode, StepPriority } from '@/types/roadmap'
@@ -60,6 +62,12 @@ export function StepEditDialog({
     node?.data.stepId ?? 0,
     { enabled: shouldFetchDetail },
   )
+
+  const stepId = node?.data.stepId ?? null
+  const { data: quizzesData } = useQuizzes(selectedSlug ?? '', {
+    step: stepId ?? undefined,
+  })
+  const quizCount = quizzesData?.results.length ?? 0
 
   const [activeTab, setActiveTab] = useState('content')
   const [formState, setFormState] = useState<StepFormState | null>(null)
@@ -149,6 +157,9 @@ export function StepEditDialog({
             <TabsList>
               <TabsTrigger value="content">Content</TabsTrigger>
               <TabsTrigger value="resources">Resources</TabsTrigger>
+              <TabsTrigger value="quizzes">
+                Quizzes{quizCount > 0 ? ` (${quizCount})` : ''}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="content" className="space-y-4 pt-2">
@@ -213,6 +224,16 @@ export function StepEditDialog({
                   setFormState({ ...formState, resources })
                 }
               />
+            </TabsContent>
+
+            <TabsContent value="quizzes" className="space-y-2 pt-2">
+              {selectedSlug ? (
+                <QuizzesTab slug={selectedSlug} stepId={stepId} />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Select a roadmap before managing quizzes.
+                </p>
+              )}
             </TabsContent>
           </Tabs>
         )}
