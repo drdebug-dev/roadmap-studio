@@ -7,14 +7,19 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { formatDifficultyLabel } from '@/lib/quiz-validation'
+import type { ExerciseDifficulty } from '@/types/exercise'
 import type { QuizDifficulty } from '@/types/quiz'
 
-const DIFFICULTIES: QuizDifficulty[] = ['easy', 'medium', 'advanced']
+const DIFFICULTIES: (ExerciseDifficulty | QuizDifficulty)[] = [
+  'easy',
+  'medium',
+  'advanced',
+]
 
 type DifficultySelectProps = {
   id?: string
-  value: QuizDifficulty
-  onChange: (value: QuizDifficulty) => void
+  value: ExerciseDifficulty | QuizDifficulty
+  onChange: (value: ExerciseDifficulty | QuizDifficulty) => void
   disabled?: boolean
 }
 
@@ -29,7 +34,9 @@ export function DifficultySelect({
       <Label htmlFor={id}>Difficulty</Label>
       <Select
         value={value}
-        onValueChange={(nextValue) => onChange(nextValue as QuizDifficulty)}
+        onValueChange={(nextValue) =>
+          onChange(nextValue as ExerciseDifficulty | QuizDifficulty)
+        }
         disabled={disabled}
       >
         <SelectTrigger id={id} className="w-full">
