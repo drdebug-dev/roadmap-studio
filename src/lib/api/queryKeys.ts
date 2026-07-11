@@ -1,6 +1,7 @@
 import type { ListParams } from '../../types/api.ts'
 import type { ExercisesListParams } from '../../types/exercise.ts'
 import type { FaqsListParams } from '../../types/faq.ts'
+import type { QuizzesListParams } from '../../types/quiz.ts'
 
 export const categoryKeys = {
   all: ['categories'] as const,
@@ -32,6 +33,7 @@ export const stepKeys = {
 
 export const quizKeys = {
   all: ['quizzes'] as const,
-  list: (slug: string) => ['quizzes', 'list', slug] as const,
+  list: (slug: string, params?: QuizzesListParams) =>
+    ['quizzes', 'list', slug, params] as const,
   detail: (slug: string, id: number) => ['quizzes', 'detail', slug, id] as const,
 }

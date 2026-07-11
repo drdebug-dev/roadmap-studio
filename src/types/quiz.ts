@@ -9,6 +9,8 @@ export type CreateQuizInput = {
   difficulty: QuizDifficulty
 }
 
+export type UpdateQuizInput = Partial<CreateQuizInput>
+
 export type Quiz = {
   id: number
   step: number | null
@@ -16,8 +18,21 @@ export type Quiz = {
   description: string
   difficulty: QuizDifficulty
   order: number
+  questions_count?: number
   created_at: string
   updated_at: string
+}
+
+export type QuizDetail = Quiz & {
+  questions: QuizQuestion[]
+}
+
+export type QuizzesListParams = {
+  difficulty?: QuizDifficulty
+  ordering?: string
+  page?: number
+  search?: string
+  step?: number
 }
 
 export type CreateQuizChoiceInput = {
@@ -31,6 +46,8 @@ export type CreateQuizQuestionInput = {
   explanation: string
   choices: CreateQuizChoiceInput[]
 }
+
+export type UpdateQuizQuestionInput = Partial<CreateQuizQuestionInput>
 
 export type QuizChoice = {
   id: number
