@@ -1,11 +1,11 @@
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 
+import { ExerciseEditorCard } from '@/components/dialogs/step-edit/ExerciseEditorCard'
 import {
   createEmptyExerciseDraft,
-  ExerciseEditorCard,
   type LocalExerciseDraft,
-} from '@/components/dialogs/step-edit/ExerciseEditorCard'
+} from '@/components/dialogs/step-edit/exerciseDraft'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import type { Exercise } from '@/types/exercise'

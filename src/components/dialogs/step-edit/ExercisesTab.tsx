@@ -2,6 +2,7 @@ import { isAxiosError } from 'axios'
 import { useState } from 'react'
 
 import { ExerciseEditorList } from '@/components/dialogs/step-edit/ExerciseEditorList'
+import { useStepEditContext } from '@/components/dialogs/step-edit/StepEditContext'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -13,11 +14,6 @@ import {
 } from '@/components/ui/dialog'
 import { useDeleteExercise, useExercises } from '@/hooks/useExercises'
 import type { Exercise } from '@/types/exercise'
-
-type ExercisesTabProps = {
-  slug: string
-  stepId: number | null
-}
 
 function getApiErrorMessage(error: unknown): string {
   if (isAxiosError(error)) {
@@ -31,11 +27,12 @@ function getApiErrorMessage(error: unknown): string {
   return 'Something went wrong.'
 }
 
-export function ExercisesTab({ slug, stepId }: ExercisesTabProps) {
+export function ExercisesTab() {
+  const { selectedSlug: slug, stepId } = useStepEditContext()
   const [deleteTarget, setDeleteTarget] = useState<Exercise | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
-  const { data, isLoading, isError } = useExercises(slug, {
+  const { data, isLoading, isError } = useExercises(slug ?? '', {
     step: stepId ?? undefined,
   })
   const deleteExercise = useDeleteExercise()
@@ -58,7 +55,7 @@ export function ExercisesTab({ slug, stepId }: ExercisesTabProps) {
     setDeleteError(null)
 
     try {
-      await deleteExercise.mutateAsync({ slug, id: deleteTarget.id })
+      await deleteExercise.mutateAsync({ slug: slug ?? '', id: deleteTarget.id })
       setDeleteTarget(null)
     } catch (error) {
       setDeleteError(getApiErrorMessage(error))
@@ -85,7 +82,7 @@ export function ExercisesTab({ slug, stepId }: ExercisesTabProps) {
   return (
     <>
       <ExerciseEditorList
-        slug={slug}
+        slug={slug ?? ''}
         stepId={stepId}
         exercises={exercises}
         onDeleteRequest={(exercise) => {

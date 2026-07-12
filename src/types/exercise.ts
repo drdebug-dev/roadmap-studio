@@ -5,7 +5,7 @@ export type CreateExerciseInput = {
   title: string
   description: string
   difficulty: ExerciseDifficulty
-  solution_url: string
+  solution_url?: string
 }
 
 export type UpdateExerciseInput = Partial<CreateExerciseInput>

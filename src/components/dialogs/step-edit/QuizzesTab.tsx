@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react'
 import { useState } from 'react'
 
 import { QuizEditDialog } from '@/components/dialogs/quiz/QuizEditDialog'
+import { useStepEditContext } from '@/components/dialogs/step-edit/StepEditContext'
 import { QuizSummaryCard } from '@/components/dialogs/step-edit/QuizSummaryCard'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,11 +18,6 @@ import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useDeleteQuiz, useQuizzes } from '@/hooks/useQuizzes'
 import type { Quiz } from '@/types/quiz'
-
-type QuizzesTabProps = {
-  slug: string
-  stepId: number | null
-}
 
 type QuizEditorState =
   | { mode: 'create' }
@@ -39,12 +35,13 @@ function getApiErrorMessage(error: unknown): string {
   return 'Something went wrong.'
 }
 
-export function QuizzesTab({ slug, stepId }: QuizzesTabProps) {
+export function QuizzesTab() {
+  const { selectedSlug: slug, stepId } = useStepEditContext()
   const [editorState, setEditorState] = useState<QuizEditorState | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Quiz | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
-  const { data, isLoading, isError } = useQuizzes(slug, {
+  const { data, isLoading, isError } = useQuizzes(slug ?? '', {
     step: stepId ?? undefined,
   })
   const deleteQuiz = useDeleteQuiz()
@@ -67,7 +64,7 @@ export function QuizzesTab({ slug, stepId }: QuizzesTabProps) {
     setDeleteError(null)
 
     try {
-      await deleteQuiz.mutateAsync({ slug, id: deleteTarget.id })
+      await deleteQuiz.mutateAsync({ slug: slug ?? '', id: deleteTarget.id })
       setDeleteTarget(null)
     } catch (error) {
       setDeleteError(getApiErrorMessage(error))
@@ -125,7 +122,7 @@ export function QuizzesTab({ slug, stepId }: QuizzesTabProps) {
       </div>
 
       <QuizEditDialog
-        slug={slug}
+        slug={slug ?? ''}
         stepId={stepId}
         mode={editorState?.mode ?? 'create'}
         quizId={editorState?.mode === 'edit' ? editorState.quizId : null}

@@ -2,6 +2,7 @@ import { isAxiosError } from 'axios'
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
+import type { LocalExerciseDraft } from '@/components/dialogs/step-edit/exerciseDraft'
 import { isValidUrl } from '@/components/dialogs/step-edit/utils'
 import { DifficultySelect } from '@/components/shared/DifficultySelect'
 import { Button } from '@/components/ui/button'
@@ -12,14 +13,6 @@ import {
   useUpdateExercise,
 } from '@/hooks/useExercises'
 import type { Exercise, ExerciseDifficulty } from '@/types/exercise'
-
-export type LocalExerciseDraft = {
-  localId: string
-  title: string
-  description: string
-  difficulty: ExerciseDifficulty
-  solution_url: string
-}
 
 type ExerciseEditorCardProps = {
   slug: string
@@ -55,7 +48,7 @@ function validateExerciseForm(
   const titleError = title.trim() ? null : 'Title is required.'
   const trimmedUrl = solutionUrl.trim()
   const urlError =
-    trimmedUrl && isValidUrl(trimmedUrl)
+    !trimmedUrl || isValidUrl(trimmedUrl)
       ? null
       : 'Solution URL must be a valid URL.'
 
@@ -95,12 +88,15 @@ export function ExerciseEditorCard({
       return
     }
 
+    const trimmedSolutionUrl = solutionUrl.trim()
     const input = {
       step: stepId,
       title: title.trim(),
       description: description.trim(),
       difficulty,
-      solution_url: solutionUrl.trim(),
+      ...(!isPersisted && !trimmedSolutionUrl
+        ? {}
+        : { solution_url: trimmedSolutionUrl }),
     }
 
     try {
@@ -169,7 +165,9 @@ export function ExerciseEditorCard({
         />
 
         <div className="space-y-2">
-          <Label htmlFor={`exercise-solution-url-${cardId}`}>Solution URL</Label>
+          <Label htmlFor={`exercise-solution-url-${cardId}`}>
+            Solution URL <span className="text-muted-foreground">(optional)</span>
+          </Label>
           <Input
             id={`exercise-solution-url-${cardId}`}
             value={solutionUrl}
@@ -212,14 +210,4 @@ export function ExerciseEditorCard({
       </div>
     </div>
   )
-}
-
-export function createEmptyExerciseDraft(): LocalExerciseDraft {
-  return {
-    localId: crypto.randomUUID(),
-    title: '',
-    description: '',
-    difficulty: 'easy',
-    solution_url: '',
-  }
 }
