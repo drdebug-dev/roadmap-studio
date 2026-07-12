@@ -62,8 +62,8 @@ export function useRoadmapEditor({
   }, [onDirty])
 
   const loadState = useCallback(
-    (state: LocalRoadmapState, stateKey: string) => {
-      if (loadedStateKeyRef.current === stateKey) {
+    (state: LocalRoadmapState, stateKey: string, options?: { force?: boolean }) => {
+      if (!options?.force && loadedStateKeyRef.current === stateKey) {
         return
       }
 

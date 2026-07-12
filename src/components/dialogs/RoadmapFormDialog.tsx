@@ -67,6 +67,7 @@ type RoadmapFormDialogProps = {
   mode: 'create' | 'edit'
   slug: string | null
   open: boolean
+  variant?: 'default' | 'requiredForSave'
   onClose: () => void
   onSuccess: (roadmap: { slug: string }) => void
 }
@@ -102,6 +103,7 @@ export function RoadmapFormDialog({
   mode,
   slug,
   open,
+  variant = 'default',
   onClose,
   onSuccess,
 }: RoadmapFormDialogProps) {
@@ -259,12 +261,18 @@ export function RoadmapFormDialog({
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {mode === 'create' ? 'New roadmap' : 'Edit roadmap'}
+            {variant === 'requiredForSave'
+              ? 'Create a roadmap to save'
+              : mode === 'create'
+                ? 'New roadmap'
+                : 'Edit roadmap'}
           </DialogTitle>
           <DialogDescription>
-            {mode === 'create'
-              ? 'Create a new roadmap with metadata and relations.'
-              : 'Update roadmap metadata, status, category, and related roadmaps.'}
+            {variant === 'requiredForSave'
+              ? 'Create a roadmap first, then your canvas changes will be saved to it.'
+              : mode === 'create'
+                ? 'Create a new roadmap with metadata and relations.'
+                : 'Update roadmap metadata, status, category, and related roadmaps.'}
           </DialogDescription>
         </DialogHeader>
 

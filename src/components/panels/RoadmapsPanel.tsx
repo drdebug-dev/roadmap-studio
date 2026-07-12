@@ -23,12 +23,12 @@ type DialogState =
 export function RoadmapsPanel() {
   const [collapsed, setCollapsed] = useState(false)
   const [dialogState, setDialogState] = useState<DialogState>(null)
-  const { selectedSlug, setSelectedSlug } = useRoadmapEditorContext()
+  const { selectedSlug, navigateToRoadmap } = useRoadmapEditorContext()
   const { data, isLoading, isError, error } = useRoadmaps()
   const roadmaps = data?.results ?? []
 
   const handleDialogSuccess = (roadmap: { slug: string }) => {
-    setSelectedSlug(roadmap.slug)
+    navigateToRoadmap(roadmap.slug)
     setDialogState(null)
   }
 
@@ -109,7 +109,7 @@ export function RoadmapsPanel() {
                   key={roadmap.id}
                   roadmap={roadmap}
                   isSelected={selectedSlug === roadmap.slug}
-                  onSelect={() => setSelectedSlug(roadmap.slug)}
+                  onSelect={() => navigateToRoadmap(roadmap.slug)}
                   onEdit={() =>
                     setDialogState({ mode: 'edit', slug: roadmap.slug })
                   }

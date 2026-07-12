@@ -4,7 +4,7 @@ import type { useRoadmapEditor } from '@/hooks/useRoadmapEditor'
 
 type RoadmapEditorContextValue = ReturnType<typeof useRoadmapEditor> & {
   selectedSlug: string | null
-  setSelectedSlug: (slug: string) => void
+  navigateToRoadmap: (slug: string) => void
   roadmapTitle: string | null
   isDirty: boolean
 }

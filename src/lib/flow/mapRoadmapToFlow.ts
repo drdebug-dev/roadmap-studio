@@ -6,6 +6,7 @@ import type {
 import type {
   EdgeKind,
   LocalRoadmapState,
+  LocalStepResource,
   RoadmapEdge,
   RoadmapNode,
   StepPriority,
@@ -162,6 +163,145 @@ export function mapFlowToRoadmapState(state: LocalRoadmapState) {
 
 function parseStepId(nodeId: string) {
   return Number(nodeId.replace('step-', ''))
+}
+
+export function resolveNodeToStepId(
+  nodeId: string,
+  state: LocalRoadmapState,
+  nodeIdToStepId: Map<string, number>,
+): number | null {
+  const mappedId = nodeIdToStepId.get(nodeId)
+  if (mappedId) {
+    return mappedId
+  }
+
+  const node = state.nodes.find((entry) => entry.id === nodeId)
+  if (node?.data.stepId) {
+    return node.data.stepId
+  }
+
+  if (nodeId.startsWith('step-')) {
+    const parsedId = parseStepId(nodeId)
+    return Number.isFinite(parsedId) ? parsedId : null
+  }
+
+  return null
+}
+
+export function seedNodeIdToStepIdMap(state: LocalRoadmapState) {
+  const nodeIdToStepId = new Map<string, number>()
+
+  for (const node of state.nodes) {
+    if (node.data.stepId) {
+      nodeIdToStepId.set(node.id, node.data.stepId)
+      continue
+    }
+
+    if (node.id.startsWith('step-')) {
+      const parsedId = parseStepId(node.id)
+      if (Number.isFinite(parsedId)) {
+        nodeIdToStepId.set(node.id, parsedId)
+      }
+    }
+  }
+
+  return nodeIdToStepId
+}
+
+export function collectNewFlowConnections(
+  state: LocalRoadmapState,
+  nodeIdToStepId: Map<string, number>,
+) {
+  return state.edges
+    .filter(
+      (edge) =>
+        edge.data?.edgeKind === 'flow' && edge.id.startsWith('local-edge-'),
+    )
+    .map((edge) => {
+      const fromStep = resolveNodeToStepId(edge.source, state, nodeIdToStepId)
+      const toStep = resolveNodeToStepId(edge.target, state, nodeIdToStepId)
+
+      if (!fromStep || !toStep) {
+        return null
+      }
+
+      return {
+        edgeId: edge.id,
+        from_step: fromStep,
+        to_step: toStep,
+      }
+    })
+    .filter(
+      (
+        connection,
+      ): connection is {
+        edgeId: string
+        from_step: number
+        to_step: number
+      } => connection !== null,
+    )
+}
+
+export type NewStepForCreate = {
+  nodeId: string
+  stepKind: 'main' | 'sub'
+  parentNodeId?: string
+  title: string
+  content: string
+  priority: StepPriority
+  position_x: number
+  position_y: number
+  resources: Array<
+    Pick<
+      LocalStepResource,
+      'title' | 'description' | 'url' | 'resource_type' | 'is_free' | 'order'
+    >
+  >
+}
+
+export function collectNewStepsForCreate(
+  state: LocalRoadmapState,
+): NewStepForCreate[] {
+  const mapResources = (node: RoadmapNode) =>
+    (node.data.resources ?? [])
+      .filter((resource) => !resource.id)
+      .map((resource) => ({
+        title: resource.title,
+        description: resource.description,
+        url: resource.url,
+        resource_type: resource.resource_type,
+        is_free: resource.is_free,
+        order: resource.order,
+      }))
+
+  const newMainSteps = state.nodes
+    .filter((node) => node.data.stepKind === 'main' && !node.data.stepId)
+    .map((node) => ({
+      nodeId: node.id,
+      stepKind: 'main' as const,
+      title: node.data.label,
+      content: node.data.content ?? '',
+      priority: node.data.priority ?? 'required',
+      position_x: Math.round(node.position.x),
+      position_y: Math.round(node.position.y),
+      resources: mapResources(node),
+    }))
+
+  const newSubSteps = state.nodes
+    .filter((node) => node.data.stepKind === 'sub' && !node.data.stepId)
+    .map((node) => ({
+      nodeId: node.id,
+      stepKind: 'sub' as const,
+      parentNodeId: node.data.parentNodeId,
+      title: node.data.label,
+      content: node.data.content ?? '',
+      priority: node.data.priority ?? 'required',
+      position_x: Math.round(node.position.x),
+      position_y: Math.round(node.position.y),
+      resources: mapResources(node),
+    }))
+
+  return [...newMainSteps, ...newSubSteps]
 }
 
 export function createEmptyFlowState(): LocalRoadmapState {
