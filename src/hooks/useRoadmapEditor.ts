@@ -41,6 +41,7 @@ export type StepEditPayload = {
   content: string
   priority: StepPriority
   resources: LocalStepResource[]
+  stepId?: number
 }
 
 type UseRoadmapEditorOptions = {
@@ -244,6 +245,9 @@ export function useRoadmapEditor({
                   content: payload.content,
                   priority: payload.priority,
                   resources: payload.resources,
+                  ...(payload.stepId !== undefined
+                    ? { stepId: payload.stepId }
+                    : {}),
                 },
               }
             : node,
@@ -251,7 +255,10 @@ export function useRoadmapEditor({
       )
 
       setEditTarget(null)
-      markDirty()
+
+      if (!payload.stepId) {
+        markDirty()
+      }
     },
     [editTarget, markDirty, setNodes],
   )

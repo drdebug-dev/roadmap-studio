@@ -22,6 +22,7 @@ import { RoadmapFaqsPanel } from "@/components/panels/RoadmapFaqsPanel";
 import { Button } from "@/components/ui/button";
 import { RoadmapEditorProvider } from "@/contexts/RoadmapEditorContext";
 import { useRoadmapEditor } from "@/hooks/useRoadmapEditor";
+import { useDeleteStep } from "@/hooks/useStep";
 import { useSaveRoadmapSteps } from "@/hooks/useSaveRoadmapSteps";
 import { hasPendingSaveChanges } from "@/lib/flow/mapRoadmapToFlow";
 import type { LocalRoadmapState } from "@/types/roadmap";
@@ -116,7 +117,9 @@ function RoadmapFlow({
   } = useRoadmapEditor({ onDirty });
 
   const saveSteps = useSaveRoadmapSteps();
+  const deleteStep = useDeleteStep();
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const pendingSaveInFlightRef = useRef(false);
 
   useEffect(() => {
@@ -192,6 +195,71 @@ function RoadmapFlow({
     pendingSaveAfterCreate,
     selectedSlug,
   ]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget) {
+      return;
+    }
+
+    setDeleteError(null);
+
+    const { nodeId, stepKind } = deleteTarget;
+    const subNodes =
+      stepKind === "main"
+        ? nodes.filter(
+            (node) =>
+              node.data.stepKind === "sub" &&
+              node.data.parentNodeId === nodeId,
+          )
+        : [];
+    const mainNode = nodes.find((node) => node.id === nodeId);
+
+    if (!mainNode) {
+      cancelDeleteNode();
+      return;
+    }
+
+    const nodesToDelete = [...subNodes, mainNode];
+    const stepIdsToDelete = nodesToDelete
+      .map((node) => node.data.stepId)
+      .filter((id): id is number => id !== undefined);
+
+    try {
+      if (stepIdsToDelete.length > 0 && selectedSlug) {
+        for (const stepId of stepIdsToDelete) {
+          await deleteStep.mutateAsync({ slug: selectedSlug, id: stepId });
+        }
+      }
+
+      const removedIds = new Set([nodeId, ...subNodes.map((node) => node.id)]);
+      if (editTarget && removedIds.has(editTarget.nodeId)) {
+        cancelEditStep();
+      }
+
+      confirmDeleteNode();
+
+      if (stepIdsToDelete.length > 0) {
+        onSaveSuccess();
+      }
+    } catch (error) {
+      setDeleteError(getSaveErrorMessage(error));
+    }
+  }, [
+    cancelDeleteNode,
+    cancelEditStep,
+    confirmDeleteNode,
+    deleteStep,
+    deleteTarget,
+    editTarget,
+    nodes,
+    onSaveSuccess,
+    selectedSlug,
+  ]);
+
+  const handleCancelDelete = useCallback(() => {
+    setDeleteError(null);
+    cancelDeleteNode();
+  }, [cancelDeleteNode]);
 
   const contextValue = useMemo(
     () => ({
@@ -308,9 +376,22 @@ function RoadmapFlow({
       </ReactFlow>
 
       <DeleteConfirmDialog
-        target={deleteTarget}
-        onConfirm={confirmDeleteNode}
-        onCancel={cancelDeleteNode}
+        open={Boolean(deleteTarget)}
+        title={
+          deleteTarget?.stepKind === "main" ? "Delete main step" : "Delete sub step"
+        }
+        description={
+          deleteTarget?.stepKind === "main" &&
+          (deleteTarget.cascadeCount ?? 0) > 0
+            ? `Are you sure you want to delete "${deleteTarget.label}"? ${deleteTarget.cascadeCount} related sub step(s) will also be removed.`
+            : deleteTarget
+              ? `Are you sure you want to delete "${deleteTarget.label}"? This action cannot be undone.`
+              : ""
+        }
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        isPending={deleteStep.isPending}
+        error={deleteError}
       />
 
       {editTarget ? (

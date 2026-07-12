@@ -3,19 +3,23 @@ import { Button } from '@/components/ui/button'
 import { DialogFooter } from '@/components/ui/dialog'
 
 export function StepEditFooter() {
-  const { formState, isLoading, handleSave, onCancel } = useStepEditContext()
+  const { formState, isLoading, isSaving, saveError, handleSave, onCancel } =
+    useStepEditContext()
 
   return (
-    <DialogFooter className="gap-2 sm:gap-0">
-      <Button type="button" variant="outline" onClick={onCancel}>
+    <DialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
+      {saveError ? (
+        <p className="w-full text-sm text-destructive sm:mr-auto">{saveError}</p>
+      ) : null}
+      <Button type="button" variant="outline" onClick={onCancel} disabled={isSaving}>
         Cancel
       </Button>
       <Button
         type="button"
         onClick={handleSave}
-        disabled={isLoading || !formState}
+        disabled={isLoading || isSaving || !formState}
       >
-        Save
+        {isSaving ? 'Saving…' : 'Save'}
       </Button>
     </DialogFooter>
   )

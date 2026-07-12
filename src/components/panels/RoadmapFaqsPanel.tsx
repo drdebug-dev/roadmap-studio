@@ -2,6 +2,10 @@ import { ChevronLeft, ChevronRight, Loader2, Plus, Search } from 'lucide-react'
 import { useState } from 'react'
 
 import { FaqFormDialog } from '@/components/dialogs/FaqFormDialog'
+import {
+  DeleteConfirmDialog,
+  getNamedDeleteDescription,
+} from '@/components/dialogs/DeleteConfirmDialog'
 import { FaqList } from '@/components/panels/faqs/FaqList'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,14 +15,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useRoadmapEditorContext } from '@/contexts/RoadmapEditorContext'
@@ -163,37 +159,18 @@ export function RoadmapFaqsPanel() {
         onSuccess={() => setFormDialogState(null)}
       />
 
-      <Dialog
+      <DeleteConfirmDialog
         open={Boolean(deleteTarget)}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete FAQ</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete &ldquo;{deleteTarget?.question}
-              &rdquo;? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setDeleteTarget(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleDeleteConfirm}
-              disabled={deleteFaq.isPending}
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        title="Delete FAQ"
+        description={
+          deleteTarget
+            ? getNamedDeleteDescription(deleteTarget.question)
+            : ''
+        }
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+        isPending={deleteFaq.isPending}
+      />
     </>
   )
 }

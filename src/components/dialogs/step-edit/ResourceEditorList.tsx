@@ -21,11 +21,13 @@ import type { LocalStepResource, ResourceType } from '@/types/roadmap'
 type ResourceEditorListProps = {
   resources: LocalStepResource[]
   onChange: (resources: LocalStepResource[]) => void
+  onDeleteRequest?: (resource: LocalStepResource) => void
 }
 
 export function ResourceEditorList({
   resources,
   onChange,
+  onDeleteRequest,
 }: ResourceEditorListProps) {
   const listRef = useRef<HTMLDivElement>(null)
   const prevLengthRef = useRef(resources.length)
@@ -54,6 +56,15 @@ export function ResourceEditorList({
         .filter((resource) => resource.localId !== localId)
         .map((resource, index) => ({ ...resource, order: index })),
     )
+  }
+
+  const handleRemoveResource = (resource: LocalStepResource) => {
+    if (resource.id && onDeleteRequest) {
+      onDeleteRequest(resource)
+      return
+    }
+
+    removeResource(resource.localId)
   }
 
   const addResource = () => {
@@ -94,7 +105,7 @@ export function ResourceEditorList({
                     size="icon"
                     className="h-8 w-8 text-destructive hover:text-destructive"
                     title="Remove resource"
-                    onClick={() => removeResource(resource.localId)}
+                    onClick={() => handleRemoveResource(resource)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

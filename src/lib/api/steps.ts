@@ -54,4 +54,14 @@ export const stepsApi = {
     )
     return data
   },
+
+  delete: async (slug: string, id: number) => {
+    await apiClient.delete(`/roadmaps/${slug}/steps/${id}/`)
+  },
+
+  deleteResource: async (slug: string, stepId: number, resourceId: number) => {
+    await apiClient.delete(
+      `/roadmaps/${slug}/steps/${stepId}/resources/${resourceId}/`,
+    )
+  },
 }

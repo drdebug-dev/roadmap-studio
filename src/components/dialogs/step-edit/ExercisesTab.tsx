@@ -1,17 +1,12 @@
 import { isAxiosError } from 'axios'
 import { useState } from 'react'
 
+import {
+  DeleteConfirmDialog,
+  getNamedDeleteDescription,
+} from '@/components/dialogs/DeleteConfirmDialog'
 import { ExerciseEditorList } from '@/components/dialogs/step-edit/ExerciseEditorList'
 import { useStepEditContext } from '@/components/dialogs/step-edit/StepEditContext'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { useDeleteExercise, useExercises } from '@/hooks/useExercises'
 import type { Exercise } from '@/types/exercise'
 
@@ -62,6 +57,11 @@ export function ExercisesTab() {
     }
   }
 
+  const handleCancelDelete = () => {
+    setDeleteTarget(null)
+    setDeleteError(null)
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-3 py-4">
@@ -91,48 +91,17 @@ export function ExercisesTab() {
         }}
       />
 
-      <Dialog
+      <DeleteConfirmDialog
         open={deleteTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDeleteTarget(null)
-            setDeleteError(null)
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete exercise</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete &quot;{deleteTarget?.title}&quot;?
-              This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          {deleteError ? (
-            <p className="text-sm text-destructive">{deleteError}</p>
-          ) : null}
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setDeleteTarget(null)
-                setDeleteError(null)
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleConfirmDelete}
-              disabled={deleteExercise.isPending}
-            >
-              {deleteExercise.isPending ? 'Deleting…' : 'Delete'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        title="Delete exercise"
+        description={
+          deleteTarget ? getNamedDeleteDescription(deleteTarget.title) : ''
+        }
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        isPending={deleteExercise.isPending}
+        error={deleteError}
+      />
     </>
   )
 }
