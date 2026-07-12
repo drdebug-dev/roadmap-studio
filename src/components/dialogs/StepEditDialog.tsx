@@ -1,16 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from "react";
 
 import {
   buildInitialFormState,
   hasLocalEditData,
   type StepFormState,
-} from '@/components/dialogs/step-edit/helpers'
-import { MarkdownEditorField } from '@/components/dialogs/step-edit/MarkdownEditorField'
-import { ExercisesTab } from '@/components/dialogs/step-edit/ExercisesTab'
-import { QuizzesTab } from '@/components/dialogs/step-edit/QuizzesTab'
-import { ResourceEditorList } from '@/components/dialogs/step-edit/ResourceEditorList'
-import { isValidUrl, mapApiResources } from '@/components/dialogs/step-edit/utils'
-import { Button } from '@/components/ui/button'
+} from "@/components/dialogs/step-edit/helpers";
+import { MarkdownEditorField } from "@/components/dialogs/step-edit/MarkdownEditorField";
+import { ExercisesTab } from "@/components/dialogs/step-edit/ExercisesTab";
+import { QuizzesTab } from "@/components/dialogs/step-edit/QuizzesTab";
+import { ResourceEditorList } from "@/components/dialogs/step-edit/ResourceEditorList";
+import {
+  isValidUrl,
+  mapApiResources,
+} from "@/components/dialogs/step-edit/utils";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -18,32 +21,34 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useExercises } from '@/hooks/useExercises'
-import { useQuizzes } from '@/hooks/useQuizzes'
-import { useStep } from '@/hooks/useStep'
-import type { EditTarget, StepEditPayload } from '@/hooks/useRoadmapEditor'
-import type { RoadmapNode, StepPriority } from '@/types/roadmap'
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useExercises } from "@/hooks/useExercises";
+import { useQuizzes } from "@/hooks/useQuizzes";
+import { useStep } from "@/hooks/useStep";
+import type { EditTarget, StepEditPayload } from "@/hooks/useRoadmapEditor";
+import type { RoadmapNode, StepPriority } from "@/types/roadmap";
 
-const PRIORITIES: StepPriority[] = ['required', 'recommended', 'optional']
+const PRIORITIES: StepPriority[] = ["required", "recommended", "optional"];
 
 type StepEditDialogProps = {
-  target: EditTarget | null
-  selectedSlug: string | null
-  getNodeById: (nodeId: string) => RoadmapNode | undefined
-  onSave: (payload: StepEditPayload) => void
-  onCancel: () => void
-}
+  target: EditTarget | null;
+  selectedSlug: string | null;
+  getNodeById: (nodeId: string) => RoadmapNode | undefined;
+  onSave: (payload: StepEditPayload) => void;
+  onCancel: () => void;
+};
+
+type ActiveTab = "content" | "resources" | "exercises" | "quizzes";
 
 export function StepEditDialog({
   target,
@@ -52,96 +57,98 @@ export function StepEditDialog({
   onSave,
   onCancel,
 }: StepEditDialogProps) {
-  const node = target ? getNodeById(target.nodeId) : undefined
+  const node = target ? getNodeById(target.nodeId) : undefined;
   const shouldFetchDetail =
     Boolean(target) &&
     Boolean(node?.data.stepId) &&
     Boolean(selectedSlug) &&
-    Boolean(node && !hasLocalEditData(node))
+    Boolean(node && !hasLocalEditData(node));
 
   const { data: stepDetail, isLoading: isStepLoading } = useStep(
-    selectedSlug ?? '',
+    selectedSlug ?? "",
     node?.data.stepId ?? 0,
     { enabled: shouldFetchDetail },
-  )
+  );
 
-  const stepId = node?.data.stepId ?? null
-  const { data: exercisesData } = useExercises(selectedSlug ?? '', {
-    step: stepId ?? undefined,
-  })
-  const exerciseCount = exercisesData?.results.length ?? 0
-  const { data: quizzesData } = useQuizzes(selectedSlug ?? '', {
-    step: stepId ?? undefined,
-  })
-  const quizCount = quizzesData?.results.length ?? 0
+  const isOpen = Boolean(target);
 
-  const [activeTab, setActiveTab] = useState('content')
-  const [formState, setFormState] = useState<StepFormState | null>(null)
-  const [labelError, setLabelError] = useState<string | null>(null)
-  const [urlError, setUrlError] = useState<string | null>(null)
+  const stepId = node?.data.stepId ?? null;
+  const { data: exercisesData } = useExercises(selectedSlug ?? "", {
+    step: stepId ?? undefined,
+  });
+  const exerciseCount = exercisesData?.results.length ?? 0;
+  const { data: quizzesData } = useQuizzes(selectedSlug ?? "", {
+    step: stepId ?? undefined,
+  });
+  const quizCount = quizzesData?.results.length ?? 0;
+
+  const [activeTab, setActiveTab] = useState<ActiveTab>("content");
+  const [formState, setFormState] = useState<StepFormState | null>(null);
+  const [labelError, setLabelError] = useState<string | null>(null);
+  const [urlError, setUrlError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!target || !node) {
-      setFormState(null)
-      setActiveTab('content')
-      setLabelError(null)
-      setUrlError(null)
-      return
+      setFormState(null);
+      setActiveTab("content");
+      setLabelError(null);
+      setUrlError(null);
+      return;
     }
 
-    setFormState(buildInitialFormState(node))
-    setActiveTab('basic')
-    setLabelError(null)
-    setUrlError(null)
-  }, [node, target])
+    setFormState(buildInitialFormState(node));
+
+    setLabelError(null);
+    setUrlError(null);
+  }, [node, target]);
 
   useEffect(() => {
     if (!stepDetail || !node || hasLocalEditData(node)) {
-      return
+      return;
     }
 
     setFormState({
       label: node.data.label,
       content: stepDetail.content,
-      priority: (stepDetail.priority as StepPriority) ?? 'required',
+      priority: (stepDetail.priority as StepPriority) ?? "required",
       resources: mapApiResources(stepDetail.resources),
-    })
-  }, [node, stepDetail])
+    });
+  }, [node, stepDetail]);
 
-  const isOpen = Boolean(target)
-  const isLoading = shouldFetchDetail && isStepLoading
-  const stepKindLabel = node?.data.stepKind === 'main' ? 'main step' : 'sub step'
+  const isLoading = shouldFetchDetail && isStepLoading;
+  const stepKindLabel =
+    node?.data.stepKind === "main" ? "main step" : "sub step";
 
   const handleSave = () => {
     if (!formState) {
-      return
+      return;
     }
 
-    const trimmedLabel = formState.label.trim()
+    const trimmedLabel = formState.label.trim();
     if (!trimmedLabel) {
-      setLabelError('Label is required.')
-      setActiveTab('content')
-      return
+      setLabelError("Label is required.");
+      setActiveTab("content");
+      return;
     }
 
     const invalidResource = formState.resources.find(
       (resource) => !isValidUrl(resource.url),
-    )
+    );
     if (invalidResource) {
-      setUrlError('One or more resource URLs are invalid.')
-      setActiveTab('resources')
-      return
+      setUrlError("One or more resource URLs are invalid.");
+      setActiveTab("resources");
+      return;
     }
 
-    setLabelError(null)
-    setUrlError(null)
+    setLabelError(null);
+    setUrlError(null);
     onSave({
       label: trimmedLabel,
       content: formState.content,
       priority: formState.priority,
       resources: formState.resources,
-    })
-  }
+    });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
@@ -159,15 +166,18 @@ export function StepEditDialog({
             <div className="h-64 animate-pulse rounded-md bg-muted" />
           </div>
         ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as ActiveTab)}
+          >
             <TabsList>
               <TabsTrigger value="content">Content</TabsTrigger>
               <TabsTrigger value="resources">Resources</TabsTrigger>
               <TabsTrigger value="exercises">
-                Exercises{exerciseCount > 0 ? ` (${exerciseCount})` : ''}
+                Exercises{exerciseCount > 0 ? ` (${exerciseCount})` : ""}
               </TabsTrigger>
               <TabsTrigger value="quizzes">
-                Quizzes{quizCount > 0 ? ` (${quizCount})` : ''}
+                Quizzes{quizCount > 0 ? ` (${quizCount})` : ""}
               </TabsTrigger>
             </TabsList>
 
@@ -179,8 +189,8 @@ export function StepEditDialog({
                     id="step-label"
                     value={formState.label}
                     onChange={(event) => {
-                      setLabelError(null)
-                      setFormState({ ...formState, label: event.target.value })
+                      setLabelError(null);
+                      setFormState({ ...formState, label: event.target.value });
                     }}
                     placeholder="Step label"
                     aria-invalid={Boolean(labelError)}
@@ -215,10 +225,12 @@ export function StepEditDialog({
                 </div>
               </div>
 
-              {activeTab === 'content' ? (
+              {activeTab === "content" ? (
                 <MarkdownEditorField
                   value={formState.content}
-                  onChange={(content) => setFormState({ ...formState, content })}
+                  onChange={(content) =>
+                    setFormState({ ...formState, content })
+                  }
                 />
               ) : null}
             </TabsContent>
@@ -271,5 +283,5 @@ export function StepEditDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

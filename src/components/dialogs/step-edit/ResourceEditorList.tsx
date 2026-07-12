@@ -1,9 +1,9 @@
 import { Plus, Trash2 } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Select,
   SelectContent,
@@ -12,38 +12,31 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import {
+  createEmptyResource,
+  RESOURCE_TYPES,
+} from '@/components/dialogs/step-edit/utils'
 import type { LocalStepResource, ResourceType } from '@/types/roadmap'
-
-const RESOURCE_TYPES: ResourceType[] = [
-  'official',
-  'article',
-  'book',
-  'video',
-  'course',
-  'roadmap',
-]
 
 type ResourceEditorListProps = {
   resources: LocalStepResource[]
   onChange: (resources: LocalStepResource[]) => void
 }
 
-function createEmptyResource(order: number): LocalStepResource {
-  return {
-    localId: crypto.randomUUID(),
-    title: '',
-    description: '',
-    url: '',
-    resource_type: 'article',
-    is_free: true,
-    order,
-  }
-}
-
 export function ResourceEditorList({
   resources,
   onChange,
 }: ResourceEditorListProps) {
+  const listRef = useRef<HTMLDivElement>(null)
+  const prevLengthRef = useRef(resources.length)
+
+  useEffect(() => {
+    if (resources.length > prevLengthRef.current && listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight
+    }
+    prevLengthRef.current = resources.length
+  }, [resources.length])
+
   const updateResource = (
     localId: string,
     patch: Partial<LocalStepResource>,
@@ -82,13 +75,15 @@ export function ResourceEditorList({
           No resources yet. Add one to link helpful material for this step.
         </p>
       ) : (
-        <ScrollArea className="max-h-[420px] pr-3">
-          <div className="space-y-4">
-            {resources.map((resource, index) => (
-              <div
-                key={resource.localId}
-                className="space-y-3 rounded-lg border p-4"
-              >
+        <div
+          ref={listRef}
+          className="max-h-[min(420px,50vh)] space-y-4 overflow-y-auto pr-1"
+        >
+          {resources.map((resource, index) => (
+            <div
+              key={resource.localId}
+              className="space-y-3 rounded-lg border p-4"
+            >
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-medium">
                     Resource {index + 1}
@@ -188,13 +183,10 @@ export function ResourceEditorList({
                     />
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )
 }
-
-export { createEmptyResource }

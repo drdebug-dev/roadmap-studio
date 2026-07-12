@@ -1,5 +1,26 @@
-import type { LocalStepResource } from '@/types/roadmap'
+import type { LocalStepResource, ResourceType } from '@/types/roadmap'
 import type { StepResource } from '@/types/step'
+
+export const RESOURCE_TYPES: ResourceType[] = [
+  'official',
+  'article',
+  'book',
+  'video',
+  'course',
+  'roadmap',
+]
+
+export function createEmptyResource(order: number): LocalStepResource {
+  return {
+    localId: crypto.randomUUID(),
+    title: '',
+    description: '',
+    url: '',
+    resource_type: 'article',
+    is_free: true,
+    order,
+  }
+}
 
 export function mapApiResources(resources: StepResource[]): LocalStepResource[] {
   return resources.map((resource) => ({

@@ -56,6 +56,16 @@ export type CreateStepInput = {
   position_y: number
 }
 
+export type UpdateStepInput = Partial<CreateStepInput & { order: number }>
+
+export type BulkUpdateStepItem = UpdateStepInput & {
+  id: number
+}
+
+export type BulkUpdateStepsInput = {
+  steps: BulkUpdateStepItem[]
+}
+
 export type CreateResourceInput = {
   title: string
   description: string

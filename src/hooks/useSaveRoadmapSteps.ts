@@ -5,7 +5,9 @@ import { roadmapKeys } from '@/lib/api/queryKeys'
 import { stepsApi } from '@/lib/api/steps'
 import {
   collectNewFlowConnections,
+  collectNewResourcesForExistingSteps,
   collectNewStepsForCreate,
+  collectStepsForUpdate,
   seedNodeIdToStepIdMap,
   type NewStepForCreate,
 } from '@/lib/flow/mapRoadmapToFlow'
@@ -14,6 +16,7 @@ import type { LocalRoadmapState } from '@/types/roadmap'
 type SaveRoadmapStepsInput = {
   slug: string
   state: LocalRoadmapState
+  baseline: LocalRoadmapState
 }
 
 function resolveParentStepId(
@@ -46,13 +49,25 @@ export function useSaveRoadmapSteps() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ slug, state }: SaveRoadmapStepsInput) => {
+    mutationFn: async ({ slug, state, baseline }: SaveRoadmapStepsInput) => {
       const newSteps = collectNewStepsForCreate(state)
+      const stepsToUpdate = collectStepsForUpdate(state, baseline)
+      const newResourcesForExistingSteps =
+        collectNewResourcesForExistingSteps(state)
       const nodeIdToStepId = seedNodeIdToStepIdMap(state)
       const pendingConnections = collectNewFlowConnections(state, nodeIdToStepId)
 
-      if (newSteps.length === 0 && pendingConnections.length === 0) {
-        return { createdStepCount: 0, createdConnectionCount: 0 }
+      if (
+        newSteps.length === 0 &&
+        stepsToUpdate.length === 0 &&
+        newResourcesForExistingSteps.length === 0 &&
+        pendingConnections.length === 0
+      ) {
+        return {
+          createdStepCount: 0,
+          updatedStepCount: 0,
+          createdConnectionCount: 0,
+        }
       }
 
       const mainSteps = newSteps.filter((step) => step.stepKind === 'main')
@@ -105,6 +120,19 @@ export function useSaveRoadmapSteps() {
         }
       }
 
+      if (stepsToUpdate.length > 0) {
+        await stepsApi.bulkUpdate(slug, {
+          steps: stepsToUpdate.map(({ stepId, input }) => ({
+            id: stepId,
+            ...input,
+          })),
+        })
+      }
+
+      for (const entry of newResourcesForExistingSteps) {
+        await stepsApi.createResource(slug, entry.stepId, entry.resource)
+      }
+
       const connectionsToCreate = collectNewFlowConnections(state, nodeIdToStepId)
 
       for (const connection of connectionsToCreate) {
@@ -116,11 +144,12 @@ export function useSaveRoadmapSteps() {
 
       return {
         createdStepCount: newSteps.length,
+        updatedStepCount: stepsToUpdate.length,
         createdConnectionCount: connectionsToCreate.length,
       }
     },
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (_data, variables) => {
+      await queryClient.refetchQueries({
         queryKey: roadmapKeys.detail(variables.slug),
       })
     },

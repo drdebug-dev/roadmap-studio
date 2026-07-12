@@ -3,6 +3,7 @@ import type {
   RoadmapDetail,
   RoadmapStep,
 } from '@/types/roadmap-api'
+import type { UpdateStepInput } from '@/types/step'
 import type {
   EdgeKind,
   LocalRoadmapState,
@@ -302,6 +303,129 @@ export function collectNewStepsForCreate(
     }))
 
   return [...newMainSteps, ...newSubSteps]
+}
+
+function nodeHasLocalEditData(node: RoadmapNode) {
+  return (
+    node.data.content !== undefined || (node.data.resources?.length ?? 0) > 0
+  )
+}
+
+export type StepForUpdate = {
+  stepId: number
+  input: UpdateStepInput
+}
+
+export function collectStepsForUpdate(
+  current: LocalRoadmapState,
+  baseline: LocalRoadmapState,
+): StepForUpdate[] {
+  const baselineByStepId = new Map<number, RoadmapNode>()
+
+  for (const node of baseline.nodes) {
+    if (node.data.stepId) {
+      baselineByStepId.set(node.data.stepId, node)
+    }
+  }
+
+  const updates: StepForUpdate[] = []
+
+  for (const node of current.nodes) {
+    const stepId = node.data.stepId
+    if (!stepId) {
+      continue
+    }
+
+    const baselineNode = baselineByStepId.get(stepId)
+    if (!baselineNode) {
+      continue
+    }
+
+    const input: UpdateStepInput = {}
+
+    if (node.data.label !== baselineNode.data.label) {
+      input.title = node.data.label
+    }
+
+    const currentPriority = node.data.priority ?? 'required'
+    const baselinePriority = baselineNode.data.priority ?? 'required'
+    if (currentPriority !== baselinePriority) {
+      input.priority = currentPriority
+    }
+
+    const currentX = Math.round(node.position.x)
+    const currentY = Math.round(node.position.y)
+    const baselineX = Math.round(baselineNode.position.x)
+    const baselineY = Math.round(baselineNode.position.y)
+    if (currentX !== baselineX || currentY !== baselineY) {
+      input.position_x = currentX
+      input.position_y = currentY
+    }
+
+    if (nodeHasLocalEditData(node)) {
+      input.content = node.data.content ?? ''
+    }
+
+    if (Object.keys(input).length > 0) {
+      updates.push({ stepId, input })
+    }
+  }
+
+  return updates
+}
+
+export type NewResourceForExistingStep = {
+  stepId: number
+  resource: Pick<
+    LocalStepResource,
+    'title' | 'description' | 'url' | 'resource_type' | 'is_free' | 'order'
+  >
+}
+
+export function collectNewResourcesForExistingSteps(
+  state: LocalRoadmapState,
+): NewResourceForExistingStep[] {
+  const resources: NewResourceForExistingStep[] = []
+
+  for (const node of state.nodes) {
+    if (!node.data.stepId) {
+      continue
+    }
+
+    for (const resource of node.data.resources ?? []) {
+      if (resource.id) {
+        continue
+      }
+
+      resources.push({
+        stepId: node.data.stepId,
+        resource: {
+          title: resource.title,
+          description: resource.description,
+          url: resource.url,
+          resource_type: resource.resource_type,
+          is_free: resource.is_free,
+          order: resource.order,
+        },
+      })
+    }
+  }
+
+  return resources
+}
+
+export function hasPendingSaveChanges(
+  current: LocalRoadmapState,
+  baseline: LocalRoadmapState,
+) {
+  const nodeIdToStepId = seedNodeIdToStepIdMap(current)
+
+  return (
+    collectNewStepsForCreate(current).length > 0 ||
+    collectNewFlowConnections(current, nodeIdToStepId).length > 0 ||
+    collectStepsForUpdate(current, baseline).length > 0 ||
+    collectNewResourcesForExistingSteps(current).length > 0
+  )
 }
 
 export function createEmptyFlowState(): LocalRoadmapState {

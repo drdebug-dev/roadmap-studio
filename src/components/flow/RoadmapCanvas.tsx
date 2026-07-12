@@ -5,77 +5,77 @@ import {
   Panel,
   ReactFlow,
   ReactFlowProvider,
-} from '@xyflow/react'
-import { isAxiosError } from 'axios'
-import { Plus } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+} from "@xyflow/react";
+import { isAxiosError } from "axios";
+import { Plus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { DeleteConfirmDialog } from '@/components/dialogs/DeleteConfirmDialog'
-import { StepEditDialog } from '@/components/dialogs/StepEditDialog'
-import { DependencyEdge } from '@/components/flow/edges/DependencyEdge'
-import { FlowEdge } from '@/components/flow/edges/FlowEdge'
-import { MainStepNode } from '@/components/flow/nodes/MainStepNode'
-import { SubStepNode } from '@/components/flow/nodes/SubStepNode'
-import { Navbar } from '@/components/layout/Navbar'
-import { RoadmapsPanel } from '@/components/panels/RoadmapsPanel'
-import { RoadmapFaqsPanel } from '@/components/panels/RoadmapFaqsPanel'
-import { Button } from '@/components/ui/button'
-import { RoadmapEditorProvider } from '@/contexts/RoadmapEditorContext'
-import { useRoadmapEditor } from '@/hooks/useRoadmapEditor'
-import { useSaveRoadmapSteps } from '@/hooks/useSaveRoadmapSteps'
-import { collectNewFlowConnections, collectNewStepsForCreate, seedNodeIdToStepIdMap } from '@/lib/flow/mapRoadmapToFlow'
-import type { LocalRoadmapState } from '@/types/roadmap'
+import { DeleteConfirmDialog } from "@/components/dialogs/DeleteConfirmDialog";
+import { StepEditDialog } from "@/components/dialogs/StepEditDialog";
+import { DependencyEdge } from "@/components/flow/edges/DependencyEdge";
+import { FlowEdge } from "@/components/flow/edges/FlowEdge";
+import { MainStepNode } from "@/components/flow/nodes/MainStepNode";
+import { SubStepNode } from "@/components/flow/nodes/SubStepNode";
+import { Navbar } from "@/components/layout/Navbar";
+import { RoadmapsPanel } from "@/components/panels/RoadmapsPanel";
+import { RoadmapFaqsPanel } from "@/components/panels/RoadmapFaqsPanel";
+import { Button } from "@/components/ui/button";
+import { RoadmapEditorProvider } from "@/contexts/RoadmapEditorContext";
+import { useRoadmapEditor } from "@/hooks/useRoadmapEditor";
+import { useSaveRoadmapSteps } from "@/hooks/useSaveRoadmapSteps";
+import { hasPendingSaveChanges } from "@/lib/flow/mapRoadmapToFlow";
+import type { LocalRoadmapState } from "@/types/roadmap";
 
 const nodeTypes = {
   mainStep: MainStepNode,
   subStep: SubStepNode,
-}
+};
 
 const edgeTypes = {
   flow: FlowEdge,
   dependency: DependencyEdge,
-}
+};
 
 type RoadmapFlowProps = {
-  selectedSlug: string | null
-  navigateToRoadmap: (slug: string) => void
-  roadmapTitle: string | null
-  flowState: LocalRoadmapState | null
-  stateKey: string | null
-  isDirty: boolean
-  onDirty: () => void
-  onClearDirty: () => void
-  onSaveWithoutSlug: () => void
-  onSaveSuccess: () => void
-  pendingSaveAfterCreate: boolean
-  onPendingSaveHandled: () => void
-}
+  selectedSlug: string | null;
+  navigateToRoadmap: (slug: string) => void;
+  roadmapTitle: string | null;
+  flowState: LocalRoadmapState | null;
+  stateKey: string | null;
+  isDirty: boolean;
+  onDirty: () => void;
+  onClearDirty: () => void;
+  onSaveWithoutSlug: () => void;
+  onSaveSuccess: () => void;
+  pendingSaveAfterCreate: boolean;
+  onPendingSaveHandled: () => void;
+};
 
 function getSaveErrorMessage(error: unknown): string {
   if (isAxiosError(error)) {
-    const data = error.response?.data
-    if (typeof data === 'string') {
-      return data
+    const data = error.response?.data;
+    if (typeof data === "string") {
+      return data;
     }
-    if (data && typeof data === 'object') {
+    if (data && typeof data === "object") {
       const messages = Object.entries(data).flatMap(([field, value]) => {
         if (Array.isArray(value)) {
-          return value.map((message) => `${field}: ${String(message)}`)
+          return value.map((message) => `${field}: ${String(message)}`);
         }
-        return [`${field}: ${String(value)}`]
-      })
+        return [`${field}: ${String(value)}`];
+      });
       if (messages.length > 0) {
-        return messages.join(' ')
+        return messages.join(" ");
       }
     }
-    return error.message
+    return error.message;
   }
 
   if (error instanceof Error) {
-    return error.message
+    return error.message;
   }
 
-  return 'Failed to save roadmap steps.'
+  return "Failed to save roadmap steps.";
 }
 
 function RoadmapFlow({
@@ -113,59 +113,53 @@ function RoadmapFlow({
     selectedMainNodeId,
     loadState,
     onNodeDragStop,
-  } = useRoadmapEditor({ onDirty })
+  } = useRoadmapEditor({ onDirty });
 
-  const saveSteps = useSaveRoadmapSteps()
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const pendingSaveInFlightRef = useRef(false)
+  const saveSteps = useSaveRoadmapSteps();
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const pendingSaveInFlightRef = useRef(false);
 
   useEffect(() => {
-    if (!stateKey || !flowState) {
-      return
+    if (!stateKey || !flowState || isDirty) {
+      return;
     }
 
-    if (pendingSaveAfterCreate && isDirty) {
-      return
-    }
-
-    loadState(flowState, stateKey)
-  }, [flowState, isDirty, loadState, pendingSaveAfterCreate, stateKey])
+    loadState(flowState, stateKey);
+  }, [flowState, isDirty, loadState, stateKey]);
 
   const handleSave = useCallback(async () => {
     if (!selectedSlug) {
-      onSaveWithoutSlug()
-      return
+      onSaveWithoutSlug();
+      return;
     }
 
     if (!isDirty || saveSteps.isPending) {
-      return
+      return;
     }
 
-    const nodeIdToStepId = seedNodeIdToStepIdMap({ nodes, edges })
-    const newSteps = collectNewStepsForCreate({ nodes, edges })
-    const newConnections = collectNewFlowConnections({ nodes, edges }, nodeIdToStepId)
+    const baseline = flowState ?? { nodes: [], edges: [] };
 
-    if (newSteps.length === 0 && newConnections.length === 0) {
-      setSaveError(
-        'Only new steps and connections can be saved right now. Step updates are coming soon.',
-      )
-      return
+    if (!hasPendingSaveChanges({ nodes, edges }, baseline)) {
+      onClearDirty();
+      return;
     }
 
-    setSaveError(null)
+    setSaveError(null);
 
     try {
       await saveSteps.mutateAsync({
         slug: selectedSlug,
         state: { nodes, edges },
-      })
-      onClearDirty()
-      onSaveSuccess()
+        baseline,
+      });
+      onClearDirty();
+      onSaveSuccess();
     } catch (error) {
-      setSaveError(getSaveErrorMessage(error))
+      setSaveError(getSaveErrorMessage(error));
     }
   }, [
     edges,
+    flowState,
     isDirty,
     nodes,
     onClearDirty,
@@ -173,7 +167,7 @@ function RoadmapFlow({
     onSaveWithoutSlug,
     saveSteps,
     selectedSlug,
-  ])
+  ]);
 
   useEffect(() => {
     if (
@@ -182,23 +176,22 @@ function RoadmapFlow({
       !isDirty ||
       pendingSaveInFlightRef.current
     ) {
-      return
+      return;
     }
 
-    pendingSaveInFlightRef.current = true
+    pendingSaveInFlightRef.current = true;
 
-    void handleSave()
-      .finally(() => {
-        pendingSaveInFlightRef.current = false
-        onPendingSaveHandled()
-      })
+    void handleSave().finally(() => {
+      pendingSaveInFlightRef.current = false;
+      onPendingSaveHandled();
+    });
   }, [
     handleSave,
     isDirty,
     onPendingSaveHandled,
     pendingSaveAfterCreate,
     selectedSlug,
-  ])
+  ]);
 
   const contextValue = useMemo(
     () => ({
@@ -253,7 +246,7 @@ function RoadmapFlow({
       selectedMainNodeId,
       selectedSlug,
     ],
-  )
+  );
 
   return (
     <RoadmapEditorProvider value={contextValue}>
@@ -263,7 +256,7 @@ function RoadmapFlow({
         isSaving={saveSteps.isPending}
         saveError={saveError}
         onSaveClick={() => {
-          void handleSave()
+          void handleSave();
         }}
       />
 
@@ -285,7 +278,7 @@ function RoadmapFlow({
         <Controls />
         <MiniMap
           nodeColor={(node) =>
-            node.type === 'mainStep' ? 'var(--accent)' : 'var(--text)'
+            node.type === "mainStep" ? "var(--accent)" : "var(--text)"
           }
         />
 
@@ -301,7 +294,7 @@ function RoadmapFlow({
             disabled={!selectedMainNodeId}
             onClick={() => {
               if (selectedMainNodeId) {
-                addSubStep(selectedMainNodeId)
+                addSubStep(selectedMainNodeId);
               }
             }}
           >
@@ -320,31 +313,33 @@ function RoadmapFlow({
         onCancel={cancelDeleteNode}
       />
 
-      <StepEditDialog
-        target={editTarget}
-        selectedSlug={selectedSlug}
-        getNodeById={getNodeById}
-        onSave={confirmSaveStep}
-        onCancel={cancelEditStep}
-      />
+      {editTarget ? (
+        <StepEditDialog
+          target={editTarget}
+          selectedSlug={selectedSlug}
+          getNodeById={getNodeById}
+          onSave={confirmSaveStep}
+          onCancel={cancelEditStep}
+        />
+      ) : null}
     </RoadmapEditorProvider>
-  )
+  );
 }
 
 type RoadmapCanvasProps = {
-  selectedSlug: string | null
-  navigateToRoadmap: (slug: string) => void
-  roadmapTitle: string | null
-  flowState: LocalRoadmapState | null
-  stateKey: string | null
-  isDirty: boolean
-  onDirty: () => void
-  onClearDirty: () => void
-  onSaveWithoutSlug: () => void
-  onSaveSuccess: () => void
-  pendingSaveAfterCreate: boolean
-  onPendingSaveHandled: () => void
-}
+  selectedSlug: string | null;
+  navigateToRoadmap: (slug: string) => void;
+  roadmapTitle: string | null;
+  flowState: LocalRoadmapState | null;
+  stateKey: string | null;
+  isDirty: boolean;
+  onDirty: () => void;
+  onClearDirty: () => void;
+  onSaveWithoutSlug: () => void;
+  onSaveSuccess: () => void;
+  pendingSaveAfterCreate: boolean;
+  onPendingSaveHandled: () => void;
+};
 
 export function RoadmapCanvas(props: RoadmapCanvasProps) {
   return (
@@ -353,5 +348,5 @@ export function RoadmapCanvas(props: RoadmapCanvasProps) {
         <RoadmapFlow {...props} />
       </div>
     </ReactFlowProvider>
-  )
+  );
 }
