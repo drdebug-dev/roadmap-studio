@@ -15,6 +15,7 @@ export function useCreateRoadmap() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['roadmaps', 'create'],
     mutationFn: (input: RoadmapWritePayload) => roadmapsApi.create(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: roadmapKeys.all })
@@ -26,6 +27,7 @@ export function useUpdateRoadmap() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['roadmaps', 'update'],
     mutationFn: ({
       slug,
       input,

@@ -19,6 +19,7 @@ export function useCreateExercise() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['exercises', 'create'],
     mutationFn: ({
       slug,
       input,
@@ -39,6 +40,7 @@ export function useUpdateExercise() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['exercises', 'update'],
     mutationFn: ({
       slug,
       id,
@@ -60,6 +62,7 @@ export function useDeleteExercise() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['exercises', 'delete'],
     mutationFn: ({ slug, id }: { slug: string; id: number }) =>
       exercisesApi.delete(slug, id),
     onSuccess: (_data, variables) => {

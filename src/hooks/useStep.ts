@@ -15,10 +15,16 @@ export function useStep(slug: string, id: number, options: UseStepOptions = {}) 
   })
 }
 
-export function useCreateStep() {
+type MutationToastOptions = {
+  silent?: boolean
+}
+
+export function useCreateStep(options: MutationToastOptions = {}) {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['steps', 'create'],
+    meta: options.silent ? { toast: false } : undefined,
     mutationFn: ({
       slug,
       input,
@@ -34,10 +40,12 @@ export function useCreateStep() {
   })
 }
 
-export function useUpdateStep() {
+export function useUpdateStep(options: MutationToastOptions = {}) {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['steps', 'update'],
+    meta: options.silent ? { toast: false } : undefined,
     mutationFn: ({
       slug,
       id,
@@ -58,10 +66,12 @@ export function useUpdateStep() {
   })
 }
 
-export function useDeleteStep() {
+export function useDeleteStep(options: MutationToastOptions = {}) {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['steps', 'delete'],
+    meta: options.silent ? { toast: false } : undefined,
     mutationFn: ({ slug, id }: { slug: string; id: number }) =>
       stepsApi.delete(slug, id),
     onSuccess: (_data, variables) => {
@@ -79,6 +89,7 @@ export function useDeleteResource() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['steps', 'deleteResource'],
     mutationFn: ({
       slug,
       stepId,

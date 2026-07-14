@@ -49,6 +49,7 @@ export function useSaveRoadmapSteps() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['roadmap-steps', 'save'],
     mutationFn: async ({ slug, state, baseline }: SaveRoadmapStepsInput) => {
       const newSteps = collectNewStepsForCreate(state)
       const stepsToUpdate = collectStepsForUpdate(state, baseline)

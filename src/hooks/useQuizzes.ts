@@ -29,6 +29,7 @@ export function useCreateQuiz() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['quizzes', 'create'],
     mutationFn: ({
       slug,
       input,
@@ -49,6 +50,7 @@ export function useUpdateQuiz() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['quizzes', 'update'],
     mutationFn: ({
       slug,
       id,
@@ -73,6 +75,7 @@ export function useDeleteQuiz() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['quizzes', 'delete'],
     mutationFn: ({ slug, id }: { slug: string; id: number }) =>
       quizzesApi.delete(slug, id),
     onSuccess: (_data, variables) => {
@@ -90,6 +93,7 @@ export function useCreateQuizQuestion() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['quiz-questions', 'create'],
     mutationFn: ({
       slug,
       quizId,
@@ -114,6 +118,7 @@ export function useUpdateQuizQuestion() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['quiz-questions', 'update'],
     mutationFn: ({
       slug,
       quizId,
@@ -140,6 +145,7 @@ export function useDeleteQuizQuestion() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['quiz-questions', 'delete'],
     mutationFn: ({
       slug,
       quizId,

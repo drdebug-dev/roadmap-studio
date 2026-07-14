@@ -19,6 +19,7 @@ export function useCreateFaq() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['faqs', 'create'],
     mutationFn: ({
       slug,
       input,
@@ -38,6 +39,7 @@ export function useUpdateFaq() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['faqs', 'update'],
     mutationFn: ({
       slug,
       id,
@@ -59,6 +61,7 @@ export function useDeleteFaq() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ['faqs', 'delete'],
     mutationFn: ({ slug, id }: { slug: string; id: number }) =>
       faqsApi.delete(slug, id),
     onSuccess: (_data, variables) => {
