@@ -1,4 +1,3 @@
-import { isAxiosError } from 'axios'
 import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -72,33 +71,6 @@ type RoadmapFormDialogProps = {
   onSuccess: (roadmap: { slug: string }) => void
 }
 
-function getApiErrorMessage(error: unknown): string {
-  if (isAxiosError(error)) {
-    const data = error.response?.data
-    if (typeof data === 'string') {
-      return data
-    }
-    if (data && typeof data === 'object') {
-      const messages = Object.entries(data).flatMap(([field, value]) => {
-        if (Array.isArray(value)) {
-          return value.map((message) => `${field}: ${String(message)}`)
-        }
-        return [`${field}: ${String(value)}`]
-      })
-      if (messages.length > 0) {
-        return messages.join(' ')
-      }
-    }
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong.'
-}
-
 export function RoadmapFormDialog({
   mode,
   slug,
@@ -120,7 +92,6 @@ export function RoadmapFormDialog({
   const [titleError, setTitleError] = useState<string | null>(null)
   const [slugError, setSlugError] = useState<string | null>(null)
   const [categoryError, setCategoryError] = useState<string | null>(null)
-  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const categories = categoriesData?.results ?? []
   const roadmaps = roadmapsData?.results ?? []
@@ -140,7 +111,6 @@ export function RoadmapFormDialog({
     setTitleError(null)
     setSlugError(null)
     setCategoryError(null)
-    setSubmitError(null)
 
     if (mode === 'create') {
       setFormState(EMPTY_FORM)
@@ -224,8 +194,6 @@ export function RoadmapFormDialog({
       return
     }
 
-    setSubmitError(null)
-
     const payload = {
       title: trimmedTitle,
       slug: trimmedSlug,
@@ -251,8 +219,8 @@ export function RoadmapFormDialog({
         onSuccess({ slug: updated.slug })
       }
       onClose()
-    } catch (error) {
-      setSubmitError(getApiErrorMessage(error))
+    } catch {
+      // Global mutation toast handles API errors.
     }
   }
 
@@ -465,10 +433,6 @@ export function RoadmapFormDialog({
                 )}
               </ScrollArea>
             </div>
-
-            {submitError ? (
-              <p className="text-sm text-destructive">{submitError}</p>
-            ) : null}
           </div>
         )}
 

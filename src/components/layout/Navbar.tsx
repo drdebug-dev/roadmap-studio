@@ -16,7 +16,6 @@ type NavbarProps = {
   roadmapTitle?: string | null
   isDirty?: boolean
   isSaving?: boolean
-  saveError?: string | null
   navItems?: NavItem[]
   onSaveClick?: () => void
 }
@@ -25,7 +24,6 @@ export function Navbar({
   roadmapTitle,
   isDirty = false,
   isSaving = false,
-  saveError = null,
   navItems = defaultNavItems,
   onSaveClick,
 }: NavbarProps) {
@@ -42,9 +40,6 @@ export function Navbar({
               {roadmapTitle}
             </span>
           </>
-        ) : null}
-        {saveError ? (
-          <span className="truncate text-sm text-destructive">{saveError}</span>
         ) : null}
       </div>
 

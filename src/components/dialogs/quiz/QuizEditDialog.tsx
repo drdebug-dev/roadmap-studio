@@ -1,4 +1,3 @@
-import { isAxiosError } from 'axios'
 import { useState } from 'react'
 
 import { QuestionEditorList } from '@/components/dialogs/quiz/QuestionEditorList'
@@ -31,33 +30,6 @@ type QuizEditDialogProps = {
   quizId: number | null
   open: boolean
   onClose: () => void
-}
-
-function getApiErrorMessage(error: unknown): string {
-  if (isAxiosError(error)) {
-    const data = error.response?.data
-    if (typeof data === 'string') {
-      return data
-    }
-    if (data && typeof data === 'object') {
-      const messages = Object.entries(data).flatMap(([field, value]) => {
-        if (Array.isArray(value)) {
-          return value.map((message) => `${field}: ${String(message)}`)
-        }
-        return [`${field}: ${String(value)}`]
-      })
-      if (messages.length > 0) {
-        return messages.join(' ')
-      }
-    }
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong.'
 }
 
 function mapDetailToMetadata(quiz: QuizDetail): QuizMetadataFormState {
@@ -93,7 +65,6 @@ function QuizEditDialogContent({
     initialDetail ? mapDetailToMetadata(initialDetail) : EMPTY_QUIZ_METADATA,
   )
   const [titleError, setTitleError] = useState<string | null>(null)
-  const [saveError, setSaveError] = useState<string | null>(null)
 
   const isEditing = activeQuizId !== null
   const { data: quizDetail, isLoading: isQuizLoading } = useQuiz(
@@ -111,7 +82,6 @@ function QuizEditDialogContent({
     }
 
     setTitleError(null)
-    setSaveError(null)
 
     try {
       if (isEditing && activeQuizId) {
@@ -137,8 +107,8 @@ function QuizEditDialogContent({
         })
         setActiveQuizId(created.id)
       }
-    } catch (error) {
-      setSaveError(getApiErrorMessage(error))
+    } catch {
+      // Global mutation toast handles API errors.
     }
   }
 
@@ -164,10 +134,6 @@ function QuizEditDialogContent({
           disabled={isSavingMetadata}
           titleError={titleError}
         />
-
-        {saveError ? (
-          <p className="text-sm text-destructive">{saveError}</p>
-        ) : null}
 
         <div className="flex justify-end">
           <Button

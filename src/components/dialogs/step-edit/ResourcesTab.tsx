@@ -1,4 +1,3 @@
-import { isAxiosError } from 'axios'
 import { useState } from 'react'
 
 import {
@@ -10,25 +9,12 @@ import { useStepEditContext } from '@/components/dialogs/step-edit/StepEditConte
 import { useDeleteResource } from '@/hooks/useStep'
 import type { LocalStepResource } from '@/types/roadmap'
 
-function getApiErrorMessage(error: unknown): string {
-  if (isAxiosError(error)) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong.'
-}
-
 export function ResourcesTab() {
   const { formState, urlError, patchForm, selectedSlug, stepId } =
     useStepEditContext()
   const [deleteTarget, setDeleteTarget] = useState<LocalStepResource | null>(
     null,
   )
-  const [deleteError, setDeleteError] = useState<string | null>(null)
   const deleteResource = useDeleteResource()
 
   if (!formState) {
@@ -39,8 +25,6 @@ export function ResourcesTab() {
     if (!deleteTarget) {
       return
     }
-
-    setDeleteError(null)
 
     try {
       if (deleteTarget.id && stepId && selectedSlug) {
@@ -57,14 +41,13 @@ export function ResourcesTab() {
           .map((resource, index) => ({ ...resource, order: index })),
       })
       setDeleteTarget(null)
-    } catch (error) {
-      setDeleteError(getApiErrorMessage(error))
+    } catch {
+      // Global mutation toast handles API errors.
     }
   }
 
   const handleCancelDelete = () => {
     setDeleteTarget(null)
-    setDeleteError(null)
   }
 
   return (
@@ -75,10 +58,7 @@ export function ResourcesTab() {
       <ResourceEditorList
         resources={formState.resources}
         onChange={(resources) => patchForm({ resources })}
-        onDeleteRequest={(resource) => {
-          setDeleteError(null)
-          setDeleteTarget(resource)
-        }}
+        onDeleteRequest={(resource) => setDeleteTarget(resource)}
       />
 
       <DeleteConfirmDialog
@@ -92,7 +72,6 @@ export function ResourcesTab() {
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
         isPending={deleteResource.isPending}
-        error={deleteError}
       />
     </div>
   )

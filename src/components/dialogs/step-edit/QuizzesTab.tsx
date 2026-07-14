@@ -1,4 +1,3 @@
-import { isAxiosError } from 'axios'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 
@@ -23,23 +22,10 @@ type QuizEditorState =
   | { mode: 'create' }
   | { mode: 'edit'; quizId: number }
 
-function getApiErrorMessage(error: unknown): string {
-  if (isAxiosError(error)) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong.'
-}
-
 export function QuizzesTab() {
   const { selectedSlug: slug, stepId } = useStepEditContext()
   const [editorState, setEditorState] = useState<QuizEditorState | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Quiz | null>(null)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const { data, isLoading, isError } = useQuizzes(slug ?? '', {
     step: stepId ?? undefined,
@@ -61,13 +47,11 @@ export function QuizzesTab() {
       return
     }
 
-    setDeleteError(null)
-
     try {
       await deleteQuiz.mutateAsync({ slug: slug ?? '', id: deleteTarget.id })
       setDeleteTarget(null)
-    } catch (error) {
-      setDeleteError(getApiErrorMessage(error))
+    } catch {
+      // Global mutation toast handles API errors.
     }
   }
 
@@ -110,10 +94,7 @@ export function QuizzesTab() {
                   onEdit={() =>
                     setEditorState({ mode: 'edit', quizId: quiz.id })
                   }
-                  onDelete={() => {
-                    setDeleteError(null)
-                    setDeleteTarget(quiz)
-                  }}
+                  onDelete={() => setDeleteTarget(quiz)}
                 />
               ))}
             </div>
@@ -135,7 +116,6 @@ export function QuizzesTab() {
         onOpenChange={(open) => {
           if (!open) {
             setDeleteTarget(null)
-            setDeleteError(null)
           }
         }}
       >
@@ -148,17 +128,11 @@ export function QuizzesTab() {
               be undone.
             </DialogDescription>
           </DialogHeader>
-          {deleteError ? (
-            <p className="text-sm text-destructive">{deleteError}</p>
-          ) : null}
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                setDeleteTarget(null)
-                setDeleteError(null)
-              }}
+              onClick={() => setDeleteTarget(null)}
             >
               Cancel
             </Button>

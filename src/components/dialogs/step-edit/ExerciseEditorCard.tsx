@@ -1,4 +1,3 @@
-import { isAxiosError } from 'axios'
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -29,18 +28,6 @@ function isPersistedExercise(
   return 'id' in exercise
 }
 
-function getApiErrorMessage(error: unknown): string {
-  if (isAxiosError(error)) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong.'
-}
-
 function validateExerciseForm(
   title: string,
   solutionUrl: string,
@@ -69,7 +56,6 @@ export function ExerciseEditorCard({
   const [solutionUrl, setSolutionUrl] = useState(exercise.solution_url)
   const [titleError, setTitleError] = useState<string | null>(null)
   const [urlError, setUrlError] = useState<string | null>(null)
-  const [saveError, setSaveError] = useState<string | null>(null)
 
   const createExercise = useCreateExercise()
   const updateExercise = useUpdateExercise()
@@ -82,7 +68,6 @@ export function ExerciseEditorCard({
     const validation = validateExerciseForm(title, solutionUrl)
     setTitleError(validation.titleError)
     setUrlError(validation.urlError)
-    setSaveError(null)
 
     if (validation.titleError || validation.urlError) {
       return
@@ -110,8 +95,8 @@ export function ExerciseEditorCard({
         await createExercise.mutateAsync({ slug, input })
         onDraftRemove?.(exercise.localId)
       }
-    } catch (error) {
-      setSaveError(getApiErrorMessage(error))
+    } catch {
+      // Global mutation toast handles API errors.
     }
   }
 
@@ -182,10 +167,6 @@ export function ExerciseEditorCard({
             <p className="text-sm text-destructive">{urlError}</p>
           ) : null}
         </div>
-
-        {saveError ? (
-          <p className="text-sm text-destructive">{saveError}</p>
-        ) : null}
       </div>
 
       <div className="flex items-center justify-end gap-2 border-t bg-background p-4">

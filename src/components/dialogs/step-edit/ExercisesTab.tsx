@@ -1,4 +1,3 @@
-import { isAxiosError } from 'axios'
 import { useState } from 'react'
 
 import {
@@ -10,22 +9,9 @@ import { useStepEditContext } from '@/components/dialogs/step-edit/StepEditConte
 import { useDeleteExercise, useExercises } from '@/hooks/useExercises'
 import type { Exercise } from '@/types/exercise'
 
-function getApiErrorMessage(error: unknown): string {
-  if (isAxiosError(error)) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong.'
-}
-
 export function ExercisesTab() {
   const { selectedSlug: slug, stepId } = useStepEditContext()
   const [deleteTarget, setDeleteTarget] = useState<Exercise | null>(null)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const { data, isLoading, isError } = useExercises(slug ?? '', {
     step: stepId ?? undefined,
@@ -47,19 +33,16 @@ export function ExercisesTab() {
       return
     }
 
-    setDeleteError(null)
-
     try {
       await deleteExercise.mutateAsync({ slug: slug ?? '', id: deleteTarget.id })
       setDeleteTarget(null)
-    } catch (error) {
-      setDeleteError(getApiErrorMessage(error))
+    } catch {
+      // Global mutation toast handles API errors.
     }
   }
 
   const handleCancelDelete = () => {
     setDeleteTarget(null)
-    setDeleteError(null)
   }
 
   if (isLoading) {
@@ -85,22 +68,20 @@ export function ExercisesTab() {
         slug={slug ?? ''}
         stepId={stepId}
         exercises={exercises}
-        onDeleteRequest={(exercise) => {
-          setDeleteError(null)
-          setDeleteTarget(exercise)
-        }}
+        onDeleteRequest={(exercise) => setDeleteTarget(exercise)}
       />
 
       <DeleteConfirmDialog
         open={deleteTarget !== null}
         title="Delete exercise"
         description={
-          deleteTarget ? getNamedDeleteDescription(deleteTarget.title) : ''
+          deleteTarget
+            ? getNamedDeleteDescription(deleteTarget.title)
+            : ''
         }
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
         isPending={deleteExercise.isPending}
-        error={deleteError}
       />
     </>
   )

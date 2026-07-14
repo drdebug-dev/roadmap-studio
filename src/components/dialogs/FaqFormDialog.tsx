@@ -1,4 +1,3 @@
-import { isAxiosError } from 'axios'
 import { useEffect, useState } from 'react'
 
 import { MarkdownEditorField } from '@/components/dialogs/step-edit/MarkdownEditorField'
@@ -35,33 +34,6 @@ type FaqFormDialogProps = {
   onSuccess: () => void
 }
 
-function getApiErrorMessage(error: unknown): string {
-  if (isAxiosError(error)) {
-    const data = error.response?.data
-    if (typeof data === 'string') {
-      return data
-    }
-    if (data && typeof data === 'object') {
-      const messages = Object.entries(data).flatMap(([field, value]) => {
-        if (Array.isArray(value)) {
-          return value.map((message) => `${field}: ${String(message)}`)
-        }
-        return [`${field}: ${String(value)}`]
-      })
-      if (messages.length > 0) {
-        return messages.join(' ')
-      }
-    }
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong.'
-}
-
 export function FaqFormDialog({
   mode,
   slug,
@@ -76,7 +48,6 @@ export function FaqFormDialog({
   const [formState, setFormState] = useState<FaqFormState>(EMPTY_FORM)
   const [questionError, setQuestionError] = useState<string | null>(null)
   const [answerError, setAnswerError] = useState<string | null>(null)
-  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const isSubmitting = createFaq.isPending || updateFaq.isPending
 
@@ -96,7 +67,6 @@ export function FaqFormDialog({
 
     setQuestionError(null)
     setAnswerError(null)
-    setSubmitError(null)
   }, [faq, mode, open])
 
   const validate = (): boolean => {
@@ -126,8 +96,6 @@ export function FaqFormDialog({
       return
     }
 
-    setSubmitError(null)
-
     const input = {
       question: formState.question.trim(),
       answer: formState.answer.trim(),
@@ -141,8 +109,8 @@ export function FaqFormDialog({
       }
 
       onSuccess()
-    } catch (error) {
-      setSubmitError(getApiErrorMessage(error))
+    } catch {
+      // Global mutation toast handles API errors.
     }
   }
 
@@ -190,10 +158,6 @@ export function FaqFormDialog({
               <p className="text-sm text-destructive">{answerError}</p>
             ) : null}
           </div>
-
-          {submitError ? (
-            <p className="text-sm text-destructive">{submitError}</p>
-          ) : null}
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">

@@ -1,4 +1,3 @@
-import { isAxiosError } from 'axios'
 import { ChevronDown, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -44,33 +43,6 @@ type QuestionEditorCardProps = {
   onSaved?: () => void
 }
 
-function getApiErrorMessage(error: unknown): string {
-  if (isAxiosError(error)) {
-    const data = error.response?.data
-    if (typeof data === 'string') {
-      return data
-    }
-    if (data && typeof data === 'object') {
-      const messages = Object.entries(data).flatMap(([field, value]) => {
-        if (Array.isArray(value)) {
-          return value.map((message) => `${field}: ${String(message)}`)
-        }
-        return [`${field}: ${String(value)}`]
-      })
-      if (messages.length > 0) {
-        return messages.join(' ')
-      }
-    }
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong.'
-}
-
 function mapQuestionToFormState(question: QuizQuestion) {
   return {
     text: question.text,
@@ -112,7 +84,6 @@ export function QuestionEditorCard({
       : (draft?.choices ?? getDefaultChoicesForType('single_choice')),
   )
   const [validationError, setValidationError] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
 
   const isSaving = createQuestion.isPending || updateQuestion.isPending
   const isDeleting = deleteQuestion.isPending
@@ -131,7 +102,6 @@ export function QuestionEditorCard({
     }
 
     setValidationError(null)
-    setActionError(null)
 
     const input: CreateQuizQuestionInput = {
       text: text.trim(),
@@ -153,8 +123,8 @@ export function QuestionEditorCard({
         })
       }
       onSaved?.()
-    } catch (error) {
-      setActionError(getApiErrorMessage(error))
+    } catch {
+      // Global mutation toast handles API errors.
     }
   }
 
@@ -168,8 +138,6 @@ export function QuestionEditorCard({
       return
     }
 
-    setActionError(null)
-
     try {
       await deleteQuestion.mutateAsync({
         slug,
@@ -177,8 +145,8 @@ export function QuestionEditorCard({
         questionId: question.id,
       })
       onSaved?.()
-    } catch (error) {
-      setActionError(getApiErrorMessage(error))
+    } catch {
+      // Global mutation toast handles API errors.
     }
   }
 
@@ -262,9 +230,6 @@ export function QuestionEditorCard({
 
             {validationError ? (
               <p className="text-sm text-destructive">{validationError}</p>
-            ) : null}
-            {actionError ? (
-              <p className="text-sm text-destructive">{actionError}</p>
             ) : null}
           </div>
 
