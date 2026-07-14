@@ -1,4 +1,3 @@
-import { isAxiosError } from 'axios'
 import {
   createContext,
   use,
@@ -21,6 +20,7 @@ import type { EditTarget, StepEditPayload } from '@/hooks/useRoadmapEditor'
 import { useQuizzes } from '@/hooks/useQuizzes'
 import { useCreateStep, useStep, useUpdateStep } from '@/hooks/useStep'
 import { stepsApi } from '@/lib/api/steps'
+import { getApiErrorMessage, toast } from '@/lib/toast'
 import type { UpdateStepInput } from '@/types/step'
 import type { LocalStepResource, RoadmapNode, StepPriority } from '@/types/roadmap'
 
@@ -33,7 +33,6 @@ export type StepEditContextValue = {
   setActiveTab: (tab: ActiveTab) => void
   labelError: string | null
   urlError: string | null
-  saveError: string | null
   clearLabelError: () => void
   clearUrlError: () => void
   selectedSlug: string | null
@@ -45,33 +44,6 @@ export type StepEditContextValue = {
   quizCount: number
   handleSave: () => void
   onCancel: () => void
-}
-
-function getSaveErrorMessage(error: unknown): string {
-  if (isAxiosError(error)) {
-    const data = error.response?.data
-    if (typeof data === 'string') {
-      return data
-    }
-    if (data && typeof data === 'object') {
-      const messages = Object.entries(data).flatMap(([field, value]) => {
-        if (Array.isArray(value)) {
-          return value.map((message) => `${field}: ${String(message)}`)
-        }
-        return [`${field}: ${String(value)}`]
-      })
-      if (messages.length > 0) {
-        return messages.join(' ')
-      }
-    }
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Failed to save step.'
 }
 
 function resolveParentStepId(
@@ -157,8 +129,8 @@ export function StepEditProvider({
     node?.data.stepId ?? 0,
     { enabled: shouldFetchDetail },
   )
-  const createStep = useCreateStep()
-  const updateStep = useUpdateStep()
+  const createStep = useCreateStep({ silent: true })
+  const updateStep = useUpdateStep({ silent: true })
 
   const stepId = node?.data.stepId ?? null
   const { data: exercisesData } = useExercises(selectedSlug ?? '', {
@@ -174,7 +146,6 @@ export function StepEditProvider({
   const [formState, dispatchForm] = useReducer(formReducer, null)
   const [labelError, setLabelError] = useState<string | null>(null)
   const [urlError, setUrlError] = useState<string | null>(null)
-  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!target || !node) {
@@ -182,14 +153,12 @@ export function StepEditProvider({
       setActiveTab('content')
       setLabelError(null)
       setUrlError(null)
-      setSaveError(null)
       return
     }
 
     dispatchForm({ type: 'reset', state: buildInitialFormState(node) })
     setLabelError(null)
     setUrlError(null)
-    setSaveError(null)
   }, [node, target])
 
   useEffect(() => {
@@ -250,7 +219,6 @@ export function StepEditProvider({
 
     setLabelError(null)
     setUrlError(null)
-    setSaveError(null)
 
     if (!selectedSlug) {
       onSave(payload)
@@ -311,8 +279,9 @@ export function StepEditProvider({
           stepId: persistedStepId ?? undefined,
           resources: persistedResources,
         })
+        toast.success('Step saved successfully')
       } catch (error) {
-        setSaveError(getSaveErrorMessage(error))
+        toast.error(getApiErrorMessage(error))
       }
     })()
   }, [
@@ -333,7 +302,6 @@ export function StepEditProvider({
     setActiveTab,
     labelError,
     urlError,
-    saveError,
     clearLabelError,
     clearUrlError,
     selectedSlug,

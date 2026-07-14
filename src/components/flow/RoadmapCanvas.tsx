@@ -6,9 +6,8 @@ import {
   ReactFlow,
   ReactFlowProvider,
 } from "@xyflow/react";
-import { isAxiosError } from "axios";
 import { Plus } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { DeleteConfirmDialog } from "@/components/dialogs/DeleteConfirmDialog";
 import { StepEditDialog } from "@/components/dialogs/StepEditDialog";
@@ -25,6 +24,7 @@ import { useRoadmapEditor } from "@/hooks/useRoadmapEditor";
 import { useDeleteStep } from "@/hooks/useStep";
 import { useSaveRoadmapSteps } from "@/hooks/useSaveRoadmapSteps";
 import { hasPendingSaveChanges } from "@/lib/flow/mapRoadmapToFlow";
+import { getApiErrorMessage, toast } from "@/lib/toast";
 import type { LocalRoadmapState } from "@/types/roadmap";
 
 const nodeTypes = {
@@ -51,33 +51,6 @@ type RoadmapFlowProps = {
   pendingSaveAfterCreate: boolean;
   onPendingSaveHandled: () => void;
 };
-
-function getSaveErrorMessage(error: unknown): string {
-  if (isAxiosError(error)) {
-    const data = error.response?.data;
-    if (typeof data === "string") {
-      return data;
-    }
-    if (data && typeof data === "object") {
-      const messages = Object.entries(data).flatMap(([field, value]) => {
-        if (Array.isArray(value)) {
-          return value.map((message) => `${field}: ${String(message)}`);
-        }
-        return [`${field}: ${String(value)}`];
-      });
-      if (messages.length > 0) {
-        return messages.join(" ");
-      }
-    }
-    return error.message;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Failed to save roadmap steps.";
-}
 
 function RoadmapFlow({
   selectedSlug,
@@ -117,9 +90,7 @@ function RoadmapFlow({
   } = useRoadmapEditor({ onDirty });
 
   const saveSteps = useSaveRoadmapSteps();
-  const deleteStep = useDeleteStep();
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const deleteStep = useDeleteStep({ silent: true });
   const pendingSaveInFlightRef = useRef(false);
 
   useEffect(() => {
@@ -147,8 +118,6 @@ function RoadmapFlow({
       return;
     }
 
-    setSaveError(null);
-
     try {
       await saveSteps.mutateAsync({
         slug: selectedSlug,
@@ -157,8 +126,8 @@ function RoadmapFlow({
       });
       onClearDirty();
       onSaveSuccess();
-    } catch (error) {
-      setSaveError(getSaveErrorMessage(error));
+    } catch {
+      // Global mutation toast handles API errors.
     }
   }, [
     edges,
@@ -201,8 +170,6 @@ function RoadmapFlow({
       return;
     }
 
-    setDeleteError(null);
-
     const { nodeId, stepKind } = deleteTarget;
     const subNodes =
       stepKind === "main"
@@ -239,10 +206,15 @@ function RoadmapFlow({
       confirmDeleteNode();
 
       if (stepIdsToDelete.length > 0) {
+        toast.success(
+          stepIdsToDelete.length > 1
+            ? "Steps deleted successfully"
+            : "Step deleted successfully",
+        );
         onSaveSuccess();
       }
     } catch (error) {
-      setDeleteError(getSaveErrorMessage(error));
+      toast.error(getApiErrorMessage(error));
     }
   }, [
     cancelDeleteNode,
@@ -257,7 +229,6 @@ function RoadmapFlow({
   ]);
 
   const handleCancelDelete = useCallback(() => {
-    setDeleteError(null);
     cancelDeleteNode();
   }, [cancelDeleteNode]);
 
@@ -322,7 +293,6 @@ function RoadmapFlow({
         roadmapTitle={roadmapTitle}
         isDirty={isDirty}
         isSaving={saveSteps.isPending}
-        saveError={saveError}
         onSaveClick={() => {
           void handleSave();
         }}
@@ -391,7 +361,6 @@ function RoadmapFlow({
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
         isPending={deleteStep.isPending}
-        error={deleteError}
       />
 
       {editTarget ? (
