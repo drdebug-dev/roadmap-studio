@@ -20,6 +20,7 @@ import { RoadmapsPanel } from "@/components/panels/RoadmapsPanel";
 import { RoadmapFaqsPanel } from "@/components/panels/RoadmapFaqsPanel";
 import { Button } from "@/components/ui/button";
 import { RoadmapEditorProvider } from "@/contexts/RoadmapEditorContext";
+import { useIdleAutosave } from "@/hooks/useIdleAutosave";
 import { useRoadmapEditor } from "@/hooks/useRoadmapEditor";
 import { useDeleteStep } from "@/hooks/useStep";
 import { useSaveRoadmapSteps } from "@/hooks/useSaveRoadmapSteps";
@@ -66,6 +67,18 @@ function RoadmapFlow({
   pendingSaveAfterCreate,
   onPendingSaveHandled,
 }: RoadmapFlowProps) {
+  const saveSteps = useSaveRoadmapSteps();
+  const deleteStep = useDeleteStep({ silent: true });
+  const pendingSaveInFlightRef = useRef(false);
+  const handleSaveRef = useRef<() => Promise<void>>(async () => {});
+
+  const { resetTimer, cancelTimer } = useIdleAutosave({
+    enabled: Boolean(selectedSlug) && isDirty && !saveSteps.isPending,
+    onIdle: () => {
+      void handleSaveRef.current();
+    },
+  });
+
   const {
     nodes,
     edges,
@@ -87,19 +100,7 @@ function RoadmapFlow({
     selectedMainNodeId,
     loadState,
     onNodeDragStop,
-  } = useRoadmapEditor({ onDirty });
-
-  const saveSteps = useSaveRoadmapSteps();
-  const deleteStep = useDeleteStep({ silent: true });
-  const pendingSaveInFlightRef = useRef(false);
-
-  useEffect(() => {
-    if (!stateKey || !flowState || isDirty) {
-      return;
-    }
-
-    loadState(flowState, stateKey);
-  }, [flowState, isDirty, loadState, stateKey]);
+  } = useRoadmapEditor({ onDirty, onNodeActivity: resetTimer });
 
   const handleSave = useCallback(async () => {
     if (!selectedSlug) {
@@ -140,6 +141,24 @@ function RoadmapFlow({
     saveSteps,
     selectedSlug,
   ]);
+
+  useEffect(() => {
+    handleSaveRef.current = handleSave;
+  }, [handleSave]);
+
+  useEffect(() => {
+    if (!isDirty) {
+      cancelTimer();
+    }
+  }, [cancelTimer, isDirty]);
+
+  useEffect(() => {
+    if (!stateKey || !flowState || isDirty) {
+      return;
+    }
+
+    loadState(flowState, stateKey);
+  }, [flowState, isDirty, loadState, stateKey]);
 
   useEffect(() => {
     if (

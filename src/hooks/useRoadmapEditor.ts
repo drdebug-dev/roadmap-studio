@@ -46,10 +46,12 @@ export type StepEditPayload = {
 
 type UseRoadmapEditorOptions = {
   onDirty?: () => void
+  onNodeActivity?: () => void
 }
 
 export function useRoadmapEditor({
   onDirty,
+  onNodeActivity,
 }: UseRoadmapEditorOptions = {}) {
   const [nodes, setNodes, onNodesChange] = useNodesState<RoadmapNode>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<RoadmapEdge>([])
@@ -61,6 +63,10 @@ export function useRoadmapEditor({
   const markDirty = useCallback(() => {
     onDirty?.()
   }, [onDirty])
+
+  const notifyNodeActivity = useCallback(() => {
+    onNodeActivity?.()
+  }, [onNodeActivity])
 
   const loadState = useCallback(
     (state: LocalRoadmapState, stateKey: string, options?: { force?: boolean }) => {
@@ -115,7 +121,8 @@ export function useRoadmapEditor({
       },
     ])
     markDirty()
-  }, [markDirty, screenToFlowPosition, setNodes])
+    notifyNodeActivity()
+  }, [markDirty, notifyNodeActivity, screenToFlowPosition, setNodes])
 
   const addSubStep = useCallback(
     (parentNodeId: string) => {
@@ -158,8 +165,9 @@ export function useRoadmapEditor({
       ])
 
       markDirty()
+      notifyNodeActivity()
     },
-    [getNodeById, getSubStepCountForMain, markDirty, setEdges, setNodes],
+    [getNodeById, getSubStepCountForMain, markDirty, notifyNodeActivity, setEdges, setNodes],
   )
 
   const requestDeleteNode = useCallback(
@@ -339,7 +347,8 @@ export function useRoadmapEditor({
 
   const onNodeDragStop = useCallback(() => {
     markDirty()
-  }, [markDirty])
+    notifyNodeActivity()
+  }, [markDirty, notifyNodeActivity])
 
   return {
     nodes,
