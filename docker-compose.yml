@@ -1,0 +1,17 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Baked into the SPA at build time (Vite)
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api}
+    image: roadmap-studio:local
+    ports:
+      - "${PORT:-3000}:3000"
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+    restart: unless-stopped

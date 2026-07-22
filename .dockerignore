@@ -1,0 +1,41 @@
+# Dependencies & build output
+node_modules
+dist
+dist-ssr
+
+# Git / IDE
+.git
+.gitignore
+.vscode
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Env & secrets (pass VITE_* as build-args instead)
+.env
+.env.*
+!.env.example
+
+# Logs & junk
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Docs / misc (not needed to build)
+docs
+README.md
+.dockerignore
+Dockerfile*
+docker-compose*.yml
+**/__tests__
+**/*.test.*
+**/*.spec.*
+coverage
+.DS_Store
+*.local

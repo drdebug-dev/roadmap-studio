@@ -1,0 +1,32 @@
+# Production deployment — no host port published; reached only through the
+# edge reverse proxy stack (../reverse-proxy) over the external "edge" network.
+#
+# Usage:
+#   docker network create edge   # once, shared with roadmap-back and the proxy
+#   docker compose -f docker-compose.prod.yml up --build -d
+
+networks:
+  edge:
+    external: true
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Same-origin path: the edge proxy routes /api/* to roadmap-back
+        # on this host, so the SPA needs no cross-origin/CORS config.
+        VITE_API_URL: ${VITE_API_URL:-/api}
+    image: roadmap-studio:prod
+    container_name: roadmap-studio
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+    expose:
+      - "3000"
+    networks:
+      - edge
